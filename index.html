@@ -5,57 +5,69 @@
 </head>
 	<body>
 		
-		<div id="alias">
+		<div id="aliasWrap">
 			<p>Choose an alias</p>
 			<p id="aliasError"></p>
-			<form id="setAlias">
+			<form id="aliasForm">
 				<input id="aliasBox" size="50"/>
-				<input type="submit"/>				
+				<button>Send</button>				
 			</form>
 		</div>
 		
-		<div id="container">
+		<div id="contentWrap" class="container">
 			<div id="aliasContainer"></div>
 			<div id="messageContainer">
 				<ul id="messages"></ul>
 				<form id="messageForm">
 					<input id="messageBox" size="50"/>
-					<input type="submit"/>
+					<button>Send</button>
 				</form>
 			</div>
 		</div>
 		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-  		<script src="/socket.io/socket.io.js"></script>
+  		<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
 		<script>
 			var socket = io();
 
-			$('#setAlias').submit(function () {
-				socket.emit('new user', $('#aliasBox').val(), function (data) {
-					if (data) {
-							$('#alias').hide();
-							$('#container').show();
-					} else {
-						$('#aliasError').html('Oops, that name\'s already taken, try a new one');
-					}
-				});
-				$('#aliasBox').val('');
-			});
-
 			$(function () {
-		  		$('#messageForm').submit(function (){
+				$('#aliasForm').submit(function (evt) {
+					evt.preventDefault();
+					socket.emit('new user', $('#aliasBox').val(), function (data) {
+						if (data) {
+							$('#aliasWrap').hide();
+							$('#contentWrap').show();
+						} else {
+							$('#aliasError').html('Oops, that name\'s already taken, try a new one');
+						}
+					});
+					$('#aliasBox').val('');
+				});
+
+				socket.on('usernames', function (data) {
+					var html = '';
+					for (i = 0; i < data.length; i++) {
+						html += data[i] + '<br/>'
+					}
+					$('#aliasContainer').html(html);
+				});
+
+		  		$('#messageForm').submit(function (evt){
+		  			evt.preventDefault();	
 	      			socket.emit('chat message', $('#messageBox').val());
 	      			$('#messageBox').val('');
 	      			return false;
     			});
-    			socket.on('new message', function (msg){
-      				$('#messages').append($('<li>').text(msg));
+
+    			socket.on('new message', function (data){
+      				$('#messages').append($('<li>').html('<b>' + data.alias + ':</b>' + data.msg));
     			});
 			});
 		</script>
 	</body>
 	<style type="text/css">
-		#container {
+		.container {
 			display: none;
+			width: 75%;
 		}
 		#messageContainer {
 			float: right;

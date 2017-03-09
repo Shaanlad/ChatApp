@@ -2,7 +2,7 @@ var express = require('express'),
 	app = express(),
 	server = require('http').createServer(app),
 	io = require('socket.io').listen(server), 
-	users = [];
+	userArray = [];
 
 server.listen(3000);
 
@@ -13,18 +13,28 @@ app.get('/', function (req, res) {
 
 io.on('connection', function (socket) {
 	socket.on('new user', function (data, callback) {
-		if (users.indexOf(data) != -1) {
+		if (userArray.indexOf(data) != -1) {
 			callback(false);
 		}
 		else {
 			socket.alias = data;
-			users.push(socket.alias);
-			io.emit('usernames', users);
+			userArray.push(socket.alias);
+			updateUserArray();
 			callback(true);
 		}
 	});
 
-	socket.on('chat message', function (msg){
-    	io.emit('new message', msg);
-  });
+	function updateUserArray() {
+		io.emit('usernames', userArray);
+	}
+
+	socket.on('chat message', function (data){
+    	io.emit('new message', {msg: data, alias: socket.alias});
+  	});
+
+	socket.on('disconnect', function (data) {
+		if(!socket.alias) return;
+		userArray.splice(userArray.indexOf(socket.alias), 1);
+		updateUserArray();
+	})
 });
